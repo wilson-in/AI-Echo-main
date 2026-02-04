@@ -49,21 +49,29 @@ The project uses **Machine Learning and Natural Language Processing (NLP)** to a
 
 ## 🚀 How to Run
 
-1️⃣ Clone the repository  
-```
-git clone https://github.com/wilson-in/5-AI-Echo.git
-cd 5-AI-Echo
-```
+1️⃣ Clone the Repository
+git clone https://github.com/wilson-in/AI-Echo-main.git
+cd AI-Echo-main
 
-2️⃣ Install dependencies  
-```
+2️⃣ (Optional but Recommended) Create and Activate a Virtual Environment
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# macOS / Linux
+source venv/bin/activate
+
+3️⃣ Install Dependencies
 pip install -r requirements.txt
-```
 
-3️⃣ Run the Streamlit app  
-```
+4️⃣ Train the Model
+
+⚠️ The trained model file is not committed to the repository.
+Run this step to generate model/model.pkl.
+
+python train_model.py
+
+5️⃣ Run the Streamlit Application
 streamlit run app/main.py
-```
 
 ---
 
