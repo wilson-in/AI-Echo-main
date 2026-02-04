@@ -1,0 +1,15 @@
+pandas>=1.5
+numpy>=1.23
+
+scikit-learn>=1.2
+joblib>=1.2
+
+matplotlib>=3.6
+seaborn>=0.12
+plotly>=5.15
+
+streamlit>=1.25
+
+wordcloud>=1.9
+
+nltk>=3.8

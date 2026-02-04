@@ -1,7 +1,3 @@
-# ========================================
-# AI Echo - Sentiment Analysis Project
-# ========================================
-
 # Python
 __pycache__/
 *.py[cod]
@@ -35,6 +31,7 @@ Thumbs.db
 # *.pkl
 # *.joblib
 # dataset/*.csv
+model/*.pkl
 
 # Logs
 *.log

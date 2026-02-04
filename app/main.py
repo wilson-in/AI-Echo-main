@@ -1,287 +1,193 @@
 # ======================================================
 # AI Echo : Your Smartest Conversational Partner
-# Sentiment Analysis Streamlit App
 # ======================================================
 
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-import plotly.express as px
-from wordcloud import WordCloud
+import os
 import joblib
+import pandas as pd
+import streamlit as st
+import plotly.express as px
+import matplotlib.pyplot as plt
 
 # ======================================================
-# 1️⃣ MODEL LOADING
+# PAGE CONFIG (MUST BE FIRST STREAMLIT CALL)
 # ======================================================
-model = joblib.load(
-    "Project_5-AI-Echo\model\model.pkl"
-)
 
-# ======================================================
-# 2️⃣ LOAD DATA
-# ======================================================
-@st.cache_data
-def load_data():
-    return pd.read_csv(
-        "Project_5-AI-Echo\dataset\cleaned_senti_mapped_data.csv"
-    )
-
-review_df = load_data()
-
-# ======================================================
-# 3️⃣ STREAMLIT PAGE CONFIG
-# ======================================================
 st.set_page_config(
     page_title="AI Echo - Sentiment Analysis",
-    layout="wide",
-    page_icon="💬"
+    page_icon="💬",
+    layout="wide"
 )
 
 # ======================================================
-# 4️⃣ SIDEBAR NAVIGATION
+# SAFE WORDCLOUD IMPORT
 # ======================================================
-option = st.sidebar.selectbox(
-    "🧭 Navigation",
-    ("📘 Project Explanation", "📈 EDA Charts", "💡 Model Prediction")
+
+try:
+    from wordcloud import WordCloud
+    WORDCLOUD_AVAILABLE = True
+except ImportError:
+    WORDCLOUD_AVAILABLE = False
+
+# ======================================================
+# PATH SETUP (PORTABLE & CORRECT)
+# ======================================================
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+MODEL_PATH = os.path.normpath(
+    os.path.join(BASE_DIR, "..", "model", "model.pkl")
+)
+
+DATA_PATH = os.path.normpath(
+    os.path.join(BASE_DIR, "..", "dataset", "cleaned_senti_mapped_data.csv")
 )
 
 # ======================================================
-# 5️⃣ DROPDOWN FOR CHARTS
-# ======================================================
-chart_options = {
-    "Overall sentiment of user reviews": "chart1",
-    "Sentiment variation by rating": "chart2",
-    "Positive Reviews WordCloud" : "chart_3_pos",
-    "Neutral Reviews WordCloud": "chart_3_neu",
-    "Negative Reviews WordCloud": "chart_3_neg",
-    "Verified users and sentiment": "chart4",
-    "Average review length by sentiment": "chart5",
-    "Sentiment by location": "chart6",
-    "Sentiment across platforms": "chart7",
-    "Sentiment by ChatGPT version": "chart8"
-}
-
-# ======================================================
-# 6️⃣ EDA CHART FUNCTIONS
+# LOAD MODEL
 # ======================================================
 
-def chart_1():
-    st.subheader("Overall Sentiment of User Reviews")
-    overall_sentiment = review_df['Sentiment'].value_counts()
-    fig = px.bar(
-        overall_sentiment,
-        x=overall_sentiment.index,
-        y=overall_sentiment.values,
-        color=overall_sentiment.values
-    )
-    fig.update_layout(xaxis_title='', yaxis_title='', template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
+@st.cache_resource
+def load_model():
+    return joblib.load(MODEL_PATH)
 
-def chart_2():
-    st.subheader("Sentiment Variation by Rating")
-    rating_sentiment = review_df.groupby('rating')['Sentiment'].value_counts().reset_index(name='count')
-    fig = px.bar(
-        rating_sentiment,
-        x='rating',
-        y='count',
-        color='Sentiment'
-    )
-    fig.update_layout(xaxis_title='', yaxis_title='', template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
-
-def chart_4():
-    st.subheader("Verified Users and Sentiment")
-    verified_sentiment = review_df.groupby('verified_purchase')['Sentiment'].value_counts().reset_index(name='count')
-    fig = px.bar(
-        verified_sentiment,
-        x='verified_purchase',
-        y='count',
-        color='Sentiment',
-        barmode='stack'
-    )
-    fig.update_layout(xaxis_title='', yaxis_title='', template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
-
-def chart_5():
-    st.subheader("Average Review Length by Sentiment")
-    review_length = review_df.groupby('Sentiment')['review_length'].mean().reset_index()
-    review_length['review_length'] = review_length['review_length'].round(0).astype(int)
-    fig = px.bar(
-        review_length,
-        x='Sentiment',
-        y='review_length',
-        color='review_length'
-    )
-    fig.update_layout(xaxis_title='', yaxis_title='', template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
-
-def chart_6():
-    st.subheader("Sentiment by Location")
-    location_sentiment = review_df.groupby('location')['Sentiment'].value_counts().reset_index(name='count')
-    fig = px.bar(
-        location_sentiment,
-        x='location',
-        y='count',
-        color='Sentiment',
-        barmode='stack'
-    )
-    fig.update_layout(xaxis_title='', yaxis_title='', template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
-
-def chart_7():
-    st.subheader("Sentiment Across Platforms")
-    platform_sentiment = review_df.groupby('platform')['Sentiment'].value_counts().reset_index(name='count')
-    fig = px.bar(
-        platform_sentiment,
-        x='platform',
-        y='count',
-        color='Sentiment',
-        barmode='stack'
-    )
-    fig.update_layout(xaxis_title='', yaxis_title='', template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
-
-def chart_8():
-    st.subheader("Sentiment by ChatGPT Version")
-    version_sentiment = review_df.groupby('version')['Sentiment'].value_counts().reset_index(name='count')
-    fig = px.bar(
-        version_sentiment,
-        x='version',
-        y='count',
-        color='Sentiment',
-        barmode='stack'
-    )
-    fig.update_layout(xaxis_title='', yaxis_title='', template="plotly_dark")
-    st.plotly_chart(fig, use_container_width=True)
-
-# --- WordClouds for chart3 ---
-def chart_3_pos():
-    st.subheader("🟢 Positive Reviews WordCloud")
-    senti_data = review_df[review_df['Sentiment'] == 'Positive']
-    all_words = ' '.join(senti_data['review'])
-    wc = WordCloud(width=500, height=400, random_state=21, max_font_size=80,
-                   background_color='black', colormap='Greens').generate(all_words)
-    fig, ax = plt.subplots(figsize=(6,5))
-    ax.imshow(wc, interpolation="bilinear")
-    ax.axis('off')
-    st.pyplot(fig)
-
-def chart_3_neu():
-    st.subheader("🔵 Neutral Reviews WordCloud")
-    senti_data = review_df[review_df['Sentiment'] == 'Neutral']
-    all_words = ' '.join(senti_data['review'])
-    wc = WordCloud(width=500, height=400, random_state=21, max_font_size=80,
-                   background_color='black', colormap='Blues').generate(all_words)
-    fig, ax = plt.subplots(figsize=(6,5))
-    ax.imshow(wc, interpolation="bilinear")
-    ax.axis('off')
-    st.pyplot(fig)
-
-def chart_3_neg():
-    st.subheader("🔴 Negative Reviews WordCloud")
-    senti_data = review_df[review_df['Sentiment'] == 'Negative']
-    all_words = ' '.join(senti_data['review'])
-    wc = WordCloud(width=500, height=400, random_state=21, max_font_size=80,
-                   background_color='black', colormap='Reds').generate(all_words)
-    fig, ax = plt.subplots(figsize=(6,5))
-    ax.imshow(wc, interpolation="bilinear")
-    ax.axis('off')
-    st.pyplot(fig)
+model = load_model()
 
 # ======================================================
-# 7️⃣ MAIN PAGE LOGIC
+# LOAD DATA
 # ======================================================
 
-if option == "📘 Project Explanation":
-    st.markdown(
-        '<h1 style="color:#00c8ff; font-family:Arial; text-align:center;">💬 AI Echo: Your Smartest Conversational Partner</h1>',
-        unsafe_allow_html=True
-    )
-    st.markdown("<hr>", unsafe_allow_html=True)
+@st.cache_data
+def load_data():
+    return pd.read_csv(DATA_PATH)
 
-    st.subheader("📘 Project Overview")
+df = load_data()
+
+# ======================================================
+# SIDEBAR NAVIGATION
+# ======================================================
+
+st.sidebar.title("🧭 Navigation")
+
+menu = st.sidebar.selectbox(
+    "Go to",
+    [
+        "📘 Project Overview",
+        "📊 EDA Dashboard",
+        "🧠 Sentiment Prediction"
+    ]
+)
+
+# ======================================================
+# PROJECT OVERVIEW
+# ======================================================
+
+if menu == "📘 Project Overview":
+    st.title("💬 AI Echo: Your Smartest Conversational Partner")
 
     st.markdown("""
-    **Objective:**  
-    AI Echo is an intelligent system that analyzes user reviews to predict sentiment and uncover insights.  
-    The project demonstrates how Natural Language Processing (NLP) and Machine Learning (ML) can transform textual feedback into actionable information.
+    **AI Echo** is an end-to-end NLP project designed to analyze user reviews
+    and classify sentiment into **Positive**, **Neutral**, or **Negative** categories.
 
-    **Key Features:**
+    ### 🔍 Key Features
+    - Text preprocessing and NLP feature engineering
+    - Exploratory Data Analysis (EDA) with interactive visuals
+    - Machine Learning–based sentiment classification
+    - Web-based deployment using Streamlit
 
-    **1️⃣ Sentiment Analysis:**  
-    - Classifies user reviews into Positive 😄, Neutral 😐, and Negative 😞 sentiments.  
-    - Provides probability scores to indicate prediction confidence.
-
-    **2️⃣ Exploratory Data Analysis (EDA):**  
-    - Visualizes overall sentiment distribution.  
-    - Analyzes sentiment trends across ratings, platforms, locations, and ChatGPT versions.  
-    - Identifies if verified users tend to leave more positive reviews.  
-    - Examines review length patterns to see if longer reviews correlate with sentiment.
-
-    **3️⃣ Keyword & Feedback Analysis:**  
-    - Generates Word Clouds for each sentiment class to highlight most frequent words.  
-    - Identifies common negative feedback themes for actionable insights.
-
-    **4️⃣ Interactive UI with Streamlit:**  
-    - Sidebar navigation for switching between “Project Explanation” and “Model Prediction.”  
-    - Dropdown selection for viewing EDA charts.  
-    - Input box for users to enter custom reviews and get sentiment predictions instantly.  
-    - Dynamic visualization using Plotly and WordCloud integrated into the dashboard.
+    ### 📌 Domain
+    Customer Experience & Business Analytics
     """)
 
-    st.markdown("""
-    **5️⃣ Tech Stack Used:**<br>
+# ======================================================
+# EDA DASHBOARD
+# ======================================================
 
-    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" width="30"/> Python (pandas, matplotlib, Plotly, WordCloud)<br>
-    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/streamlit/streamlit-original.svg" width="30"/> Streamlit for interactive web interface<br>
-    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/scikitlearn/scikitlearn-original.svg" width="30"/> scikit-learn for Machine Learning<br>
-    📦 Joblib for model serialization<br>
-    🧠 NLTK / NLP techniques for preprocessing and feature extraction
-    """, unsafe_allow_html=True) 
+elif menu == "📊 EDA Dashboard":
 
-    st.markdown("""
-        **Impact:**  
-        This project enables companies or developers to quickly understand user feedback, measure product satisfaction, and identify recurring pain points.  
-        It’s designed to be visually appealing, interactive, and easily extendable for real-world applications.
-        """)
-    
+    st.title("📊 Exploratory Data Analysis")
 
+    chart = st.selectbox(
+        "Select an analysis",
+        [
+            "Overall Sentiment Distribution",
+            "Sentiment by Rating",
+            "Sentiment by Platform",
+            "Sentiment by Location",
+            "Sentiment by ChatGPT Version",
+            "Verified vs Non-Verified Users",
+            "Average Review Length by Sentiment",
+            "WordCloud - Positive Reviews",
+            "WordCloud - Neutral Reviews",
+            "WordCloud - Negative Reviews"
+        ]
+    )
 
+    if chart == "Overall Sentiment Distribution":
+        fig = px.bar(df["Sentiment"].value_counts(), title="Overall Sentiment")
+        st.plotly_chart(fig, use_container_width=True)
 
-elif option == "📈 EDA Charts":
-    st.subheader("📊 Exploratory Data Analysis (EDA)")
-    selected_chart = st.selectbox("Select chart to display:", list(chart_options.keys()))
+    elif chart == "Sentiment by Rating":
+        data = df.groupby("rating")["Sentiment"].value_counts().reset_index(name="count")
+        fig = px.bar(data, x="rating", y="count", color="Sentiment", barmode="stack")
+        st.plotly_chart(fig, use_container_width=True)
 
-    chart_dispatcher = {
-        "Overall sentiment of user reviews": chart_1,
-        "Sentiment variation by rating": chart_2,
-        "Positive Reviews WordCloud": chart_3_pos,
-        "Neutral Reviews WordCloud": chart_3_neu,
-        "Negative Reviews WordCloud": chart_3_neg,
-        "Verified users and sentiment": chart_4,
-        "Average review length by sentiment": chart_5,
-        "Sentiment by location": chart_6,
-        "Sentiment across platforms": chart_7,
-        "Sentiment by ChatGPT version": chart_8,
-        "Positive Reviews WordCloud": chart_3_pos,
-        "Neutral Reviews WordCloud": chart_3_neu,
-        "Negative Reviews WordCloud": chart_3_neg
-    }
+    elif chart == "Sentiment by Platform":
+        data = df.groupby("platform")["Sentiment"].value_counts().reset_index(name="count")
+        fig = px.bar(data, x="platform", y="count", color="Sentiment", barmode="stack")
+        st.plotly_chart(fig, use_container_width=True)
 
-    chart_dispatcher[selected_chart]()
+    elif chart == "Sentiment by Location":
+        data = df.groupby("location")["Sentiment"].value_counts().reset_index(name="count")
+        fig = px.bar(data, x="location", y="count", color="Sentiment", barmode="stack")
+        st.plotly_chart(fig, use_container_width=True)
 
-elif option == "💡 Model Prediction":
+    elif chart == "Sentiment by ChatGPT Version":
+        data = df.groupby("version")["Sentiment"].value_counts().reset_index(name="count")
+        fig = px.bar(data, x="version", y="count", color="Sentiment", barmode="stack")
+        st.plotly_chart(fig, use_container_width=True)
+
+    elif chart == "Verified vs Non-Verified Users":
+        data = df.groupby("verified_purchase")["Sentiment"].value_counts().reset_index(name="count")
+        fig = px.bar(data, x="verified_purchase", y="count", color="Sentiment", barmode="stack")
+        st.plotly_chart(fig, use_container_width=True)
+
+    elif chart == "Average Review Length by Sentiment":
+        data = df.groupby("Sentiment")["review_length"].mean().reset_index()
+        fig = px.bar(data, x="Sentiment", y="review_length", color="Sentiment")
+        st.plotly_chart(fig, use_container_width=True)
+
+    elif "WordCloud" in chart:
+        if not WORDCLOUD_AVAILABLE:
+            st.warning("WordCloud library not installed.")
+        else:
+            sentiment = chart.split(" - ")[1].replace(" Reviews", "")
+            text = " ".join(df[df["Sentiment"] == sentiment]["review"].astype(str))
+            wc = WordCloud(background_color="black", colormap="viridis").generate(text)
+
+            fig, ax = plt.subplots()
+            ax.imshow(wc)
+            ax.axis("off")
+            st.pyplot(fig)
+
+# ======================================================
+# SENTIMENT PREDICTION
+# ======================================================
+
+elif menu == "🧠 Sentiment Prediction":
+
     st.title("🧠 Sentiment Prediction")
-    st.markdown("Enter your review and let AI predict the sentiment!")
 
-    user_input = st.text_area("✍️ Type your review below:")
+    user_input = st.text_area("✍️ Enter a review:")
 
     if st.button("🔍 Predict Sentiment"):
         if user_input.strip():
-            pred = model.predict([user_input])[0]
-            pred_proba = model.predict_proba([user_input])[0]
-            emoji_map = {"Positive": "😄", "Neutral": "😐", "Negative": "😞"}
-            st.markdown(f"### **Predicted Sentiment:** {pred} {emoji_map.get(pred, '')}")
-            st.success(f"Confidence: {max(pred_proba)*100:.2f}%")
+            prediction = model.predict([user_input])[0]
+            confidence = model.predict_proba([user_input]).max()
+
+            st.success(
+                f"**Predicted Sentiment:** {prediction}  \n"
+                f"**Confidence:** {confidence * 100:.2f}%"
+            )
         else:
-            st.warning("⚠️ Please enter a review text!")
+            st.warning("Please enter some text to analyze.")
